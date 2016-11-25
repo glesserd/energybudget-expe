@@ -14,21 +14,21 @@ all:
 swf2json: $(WORKLOADS_JSON)
 
 %.json:
-	python ../../../../expe-batsim/swfToJsonConverter.py -i 0 -cpu 100e6 -com 0.0 -jg 2 -pf 80640 --keepOriginalId $*.swf $@
+	python2 ../../../../expe-batsim/swfToJsonConverter.py -i 0 -cpu 100e6 -com 0.0 -jg 2 -pf 80640 --keepOriginalId $*.swf $@
 
 
 # program_OBJS := $(foreach tra,$(TRACES_IN),$(foreach s,$(SCHED),$(tra)_$(s).o))
 generate: swf2json
-	python generate.py
+	python2 generate.py
 
 
 simuls: $(SIMULS_OUT)
 
 %/out_jobs.csv:
-	cd ..;python launch_expe.py EXPE/$*/expe.json
+	cd ..;python2 launch_expe.py EXPE/$*/expe.json
 # 	echo "faire qqch avec $*/expe.json et le mettre dans $@"
 
 
 objectives: $(OBJECTIVES_OUT)
 %/objectives.csv:
-	python results.py $* > $*/objectives.csv
+	python2 results.py $* > $*/objectives.csv

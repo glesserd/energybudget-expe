@@ -4,18 +4,6 @@ import pandas as pd
 import glob, os, sys
 
 
-"""
-
-references:
-$ python results.py expes/easyEnergyBudget_3dMid_0.3_energyBud_SHUT_sdscblue_1w_10166421
-nb_jobs ctime util avgbsld maxbsld energyWeek energyBudget energyTot jobRun jobRunWithEnd
-1197 879651.04 0.48750575961 75.5257410381 5181.72709677 -768815873521.0 -363415525981.0 -1.48171996878e+12 1150 1153.03577247
-
-$ python results.py expes/easyEnergyBudget_3dMid_0.3_energyBud_SHUT_sdscblue_1w_16944036
-nb_jobs ctime util avgbsld maxbsld energyWeek energyBudget energyTot jobRun jobRunWithEnd
-999 781660.0 0.612596465842 86.9448887136 3566.71733333 86719826643.9 18025040380.7 121788094016.0 962 966.102231525
-
-"""
 
 
 def utilization(df, measure='requested_number_of_processors', measure_name="util", queue=False):
@@ -41,9 +29,48 @@ def utilization(df, measure='requested_number_of_processors', measure_name="util
     u = u.groupby(['time']).sum()
     u = u[u[measure_name] !=0]
     u[measure_name] = u[measure_name].cumsum()
+    
+    #most of the time, when computing the utilization,
+    # it is to compute the average utilization,
+    # "area" helps to compute it.
+    u["time"] = u.index
+    u["area"] = -u["time"].diff(-1)*u[measure_name]
+    del u["time"]
 
     return u
 
+
+def utilization_insert_element_if_necessary(util_df, at):
+    if len(util_df[util_df.time == at]) == 0:
+        prev_el = util_df[util_df.time <= at].tail(1)
+        new_el = prev_el.copy()
+        next_el = util_df[util_df.time >= at].head(1)
+        new_el.time = at
+        new_el.area = float(new_el.util) * float( next_el.time - at)
+        util_df.loc[prev_el.index, "area"] = float(prev_el.util) * float( at - prev_el.time)
+        util_df.loc[len(util_df)] = [float(new_el.time), float(new_el.util), float(new_el.area)]
+        util_df = util_df.sort_values(by=["time"])
+    return util_df
+
+
+def utilization_mean(util_df, start=0.0, end=None):
+    util_df = util_df.reset_index()
+    max_to = max(util_df.time)
+    if end is None:
+        end = max_to
+    if end > max_to:
+        raise("computing mean utilization after the last event is NOT IMPLEMENTED")
+    
+    start = float(start)
+    end = float(end)
+    
+    util_df = utilization_insert_element_if_necessary(util_df, start)
+    util_df = utilization_insert_element_if_necessary(util_df, end)
+    
+    u = util_df[util_df.time < end]
+    u = u[start <= u.time]
+    
+    return u.area.sum()/(end-start)
 
 
 def jobs_in_queue_at(df, t):
@@ -110,16 +137,10 @@ nb_jobs = len(df.jobID)
 ctime = df.finish_time.max()-df.submission_time.min()
 
 #util
-#utilFull = sum(df.requested_number_of_processors*df.execution_time)/ctime/80640
-
-
 utilt = utilization(df)
-utilt_week = utilt[utilt.index <= 3600*24*7]
-util = utilt_week.util.mean()/tot_procs
-
-
+util = utilization_mean(utilt, 0.0, 3600.0*24.0*7.0)/tot_procs
 #import matplotlib.pyplot as plt
-#plt.step(utilt.index, utilt.util)
+#plt.step(utilt.index, utilt.util, where='post')
 #plt.show()
 
 

@@ -4,7 +4,11 @@
 This repository contains the scripts to produce the results of the energy budget paper.
 The full name of the paper and the co-athors are not given yet, as it is not published yet.
 
-Most of the things are automatic thank to the magic of the Makefile.
+The raw results are not here, as they take several gigs. But you can reproduce them easily, following this guide.
+
+
+The workflow is managed using Makefiles' rules. You need standard sciientific tool for the analysis of the results (R, ggplot2, python-pandas, python-scipy, python-rpy2).
+
 
 ## Simulator
 
@@ -17,6 +21,7 @@ In the following of this file, we assume that this repository has been cloned in
 
 First generate the json files discribing each experiment by running:
 ```
+mkdir expes
 python generate.py
 python generate_sdscblue.py
 python generate_metacentrum.py
